@@ -126,6 +126,7 @@ mod test_mq;
 #[cfg(not(target_os = "redox"))]
 mod test_net;
 mod test_nix_path;
+mod test_resource;
 mod test_poll;
 #[cfg(not(target_os = "redox"))]
 mod test_pty;
