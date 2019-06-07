@@ -2,8 +2,12 @@ use libc::{self, c_int};
 use Result;
 use errno::Errno;
 use unistd::Pid;
+use std::convert::TryInto;
 
 use sys::signal::Signal;
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+use sys::ptrace::Event;
 
 libc_bitflags!(
     pub struct WaitPidFlag: c_int {
@@ -79,7 +83,7 @@ pub enum WaitStatus {
     /// [`nix::sys::ptrace`]: ../ptrace/index.html
     /// [`ptrace`(2)]: http://man7.org/linux/man-pages/man2/ptrace.2.html
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    PtraceEvent(Pid, Signal, c_int),
+    PtraceEvent(Pid, Signal, Event),
     /// The traced process was stopped by execution of a system call,
     /// and `PTRACE_O_TRACESYSGOOD` is in effect. See [`ptrace`(2)] for
     /// more information.
@@ -126,7 +130,7 @@ fn signaled(status: i32) -> bool {
 }
 
 fn term_signal(status: i32) -> Result<Signal> {
-    Signal::from_c_int(unsafe { libc::WTERMSIG(status) })
+    unsafe { libc::WTERMSIG(status) }.try_into()
 }
 
 fn dumped_core(status: i32) -> bool {
@@ -138,7 +142,7 @@ fn stopped(status: i32) -> bool {
 }
 
 fn stop_signal(status: i32) -> Result<Signal> {
-    Signal::from_c_int(unsafe { libc::WSTOPSIG(status) })
+    unsafe { libc::WSTOPSIG(status) }.try_into()
 }
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -151,8 +155,8 @@ fn syscall_stop(status: i32) -> bool {
 }
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
-fn stop_additional(status: i32) -> c_int {
-    (status >> 16) as c_int
+fn stop_event(status: i32) -> Result<Event> {
+    (status >> 16).try_into()
 }
 
 fn continued(status: i32) -> bool {
@@ -186,14 +190,12 @@ impl WaitStatus {
             cfg_if! {
                 if #[cfg(any(target_os = "android", target_os = "linux"))] {
                     fn decode_stopped(pid: Pid, status: i32) -> Result<WaitStatus> {
-                        let status_additional = stop_additional(status);
                         Ok(if syscall_stop(status) {
                             WaitStatus::PtraceSyscall(pid)
-                        } else if status_additional == 0 {
-                            WaitStatus::Stopped(pid, stop_signal(status)?)
+                        } else if let Ok(event) = stop_event(status) {
+                            WaitStatus::PtraceEvent(pid, stop_signal(status)?, event)
                         } else {
-                            WaitStatus::PtraceEvent(pid, stop_signal(status)?,
-                                                    stop_additional(status))
+                            WaitStatus::Stopped(pid, stop_signal(status)?)
                         })
                     }
                 } else {

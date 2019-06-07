@@ -1,6 +1,7 @@
 //! For detailed description of the ptrace requests, consult `man ptrace`.
 
 use std::{mem, ptr};
+use std::convert::TryFrom;
 use {Error, Result};
 use errno::Errno;
 use libc::{self, c_void, c_long, siginfo_t};
@@ -131,6 +132,19 @@ libc_enum!{
         /// STop triggered by a seccomp rule on a tracee.
         PTRACE_EVENT_SECCOMP,
         // PTRACE_EVENT_STOP not provided by libc because it's defined in glibc 2.26
+    }
+}
+
+impl TryFrom<libc::c_int> for Event {
+    type Error = Error;
+
+    #[inline]
+    fn try_from(evnum: libc::c_int) -> Result<Event> {
+        if 0 < evnum && (evnum as usize) < Event::COUNT {
+            Ok(unsafe { mem::transmute(evnum) })
+        } else {
+            Err(Error::invalid_argument())
+        }
     }
 }
 
