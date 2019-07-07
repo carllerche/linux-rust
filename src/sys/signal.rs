@@ -16,13 +16,8 @@ use std::ptr;
 #[cfg(not(target_os = "openbsd"))]
 pub use self::sigevent::*;
 
-libc_enum!{
-    // Currently there is only one definition of c_int in libc, as well as only one
-    // type for signal constants.
-    // We would prefer to use the libc::c_int alias in the repr attribute. Unfortunately
-    // this is not (yet) possible.
-    #[repr(i32)]
-    pub enum Signal {
+libc_enum! {
+    pub enum Signal: libc::c_int {
         SIGHUP,
         SIGINT,
         SIGQUIT,
@@ -288,18 +283,6 @@ impl Signal {
     pub fn iterator() -> SignalIterator {
         SignalIterator{next: 0}
     }
-
-    // We do not implement the From trait, because it is supposed to be infallible.
-    // With Rust RFC 1542 comes the appropriate trait TryFrom. Once it is
-    // implemented, we'll replace this function.
-    #[inline]
-    pub fn from_c_int(signum: libc::c_int) -> Result<Signal> {
-        if 0 < signum && signum < NSIG {
-            Ok(unsafe { mem::transmute(signum) })
-        } else {
-            Err(Error::invalid_argument())
-        }
-    }
 }
 
 pub const SIGIOT : Signal = SIGABRT;
@@ -319,8 +302,7 @@ libc_bitflags!{
 }
 
 libc_enum! {
-    #[repr(i32)]
-    pub enum SigmaskHow {
+    pub enum SigmaskHow: i32 {
         SIG_BLOCK,
         SIG_UNBLOCK,
         SIG_SETMASK,
@@ -413,7 +395,7 @@ impl SigSet {
         let mut signum: libc::c_int = unsafe { mem::uninitialized() };
         let res = unsafe { libc::sigwait(&self.sigset as *const libc::sigset_t, &mut signum) };
 
-        Errno::result(res).map(|_| Signal::from_c_int(signum).unwrap())
+        Errno::result(res).map(|_| Signal::try_from(signum).unwrap())
     }
 }
 
@@ -538,12 +520,14 @@ pub unsafe fn sigaction(signal: Signal, sigaction: &SigAction) -> Result<SigActi
 /// # extern crate nix;
 /// # use std::sync::atomic::{AtomicBool, Ordering};
 /// # use nix::sys::signal::{self, Signal, SigHandler};
+/// # use std::convert::TryInto;
+///
 /// lazy_static! {
 ///    static ref SIGNALED: AtomicBool = AtomicBool::new(false);
 /// }
 ///
 /// extern fn handle_sigint(signal: libc::c_int) {
-///     let signal = Signal::from_c_int(signal).unwrap();
+///     let signal: Signal = Signal::try_from(signal).unwrap();
 ///     SIGNALED.store(signal == Signal::SIGINT, Ordering::Relaxed);
 /// }
 ///

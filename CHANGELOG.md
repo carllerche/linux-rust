@@ -13,6 +13,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   ([#1069](https://github.com/nix-rust/nix/pull/1069))
 - Add `mkdirat`.
   ([#1084](https://github.com/nix-rust/nix/pull/1084))
+- `From` and `TryFrom` impls for many enums that correspond to libc constants.
+  ([#1088](https://github.com/nix-rust/nix/pull/1088))
 
 ### Changed
 - Support for `ifaddrs` now present when building for Android.
@@ -27,6 +29,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   ([#1090](https://github.com/nix-rust/nix/pull/1090))
 
 ### Removed
+- `Signal::from_c_int`. Use `Signal::try_from` instead.
+  ([#1088](https://github.com/nix-rust/nix/pull/1088))
+- `From<speed_t>` impl for `BaudRate`. Use `BaudRate::try_from` instead.
+  ([#1088](https://github.com/nix-rust/nix/pull/1088))
 
 ## [0.14.1] - 2019-06-06
 ### Added

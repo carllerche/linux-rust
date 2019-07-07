@@ -20,6 +20,6 @@ fn test_signalfd() {
 
     // And now catch that same signal.
     let res = fd.read_signal().unwrap().unwrap();
-    let signo = Signal::from_c_int(res.ssi_signo as i32).unwrap();
+    let signo: Signal = Signal::try_from(res.ssi_signo as i32).unwrap();
     assert_eq!(signo, signal::SIGUSR1);
 }

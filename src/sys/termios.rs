@@ -290,16 +290,14 @@ impl From<Termios> for libc::termios {
     }
 }
 
-libc_enum!{
+libc_enum! {
     /// Baud rates supported by the system.
     ///
     /// For the BSDs, arbitrary baud rates can be specified by using `u32`s directly instead of this
     /// enum.
     ///
     /// B0 is special and will disable the port.
-    #[cfg_attr(all(any(target_os = "ios", target_os = "macos"), target_pointer_width = "64"), repr(u64))]
-    #[cfg_attr(not(all(any(target_os = "ios", target_os = "macos"), target_pointer_width = "64")), repr(u32))]
-    pub enum BaudRate {
+    pub enum BaudRate: libc::speed_t {
         B0,
         B50,
         B75,
@@ -376,126 +374,12 @@ libc_enum!{
     }
 }
 
-impl From<libc::speed_t> for BaudRate {
-    fn from(s: libc::speed_t) -> BaudRate {
-
-        use libc::{B0, B50, B75, B110, B134, B150, B200, B300, B600, B1200, B1800, B2400, B4800,
-                   B9600, B19200, B38400, B57600, B115200, B230400};
-        #[cfg(any(target_os = "android", target_os = "linux"))]
-        use libc::{B500000, B576000, B1000000, B1152000, B1500000, B2000000};
-        #[cfg(any(target_os = "android", all(target_os = "linux", not(target_arch = "sparc64"))))]
-        use libc::{B2500000, B3000000, B3500000, B4000000};
-        #[cfg(any(target_os = "dragonfly",
-                  target_os = "freebsd",
-                  target_os = "macos",
-                  target_os = "netbsd",
-                  target_os = "openbsd"))]
-        use libc::{B7200, B14400, B28800, B76800};
-        #[cfg(any(target_os = "android",
-                  target_os = "freebsd",
-                  target_os = "linux",
-                  target_os = "netbsd"))]
-        use libc::{B460800, B921600};
-
-        match s {
-            B0 => BaudRate::B0,
-            B50 => BaudRate::B50,
-            B75 => BaudRate::B75,
-            B110 => BaudRate::B110,
-            B134 => BaudRate::B134,
-            B150 => BaudRate::B150,
-            B200 => BaudRate::B200,
-            B300 => BaudRate::B300,
-            B600 => BaudRate::B600,
-            B1200 => BaudRate::B1200,
-            B1800 => BaudRate::B1800,
-            B2400 => BaudRate::B2400,
-            B4800 => BaudRate::B4800,
-            #[cfg(any(target_os = "dragonfly",
-                      target_os = "freebsd",
-                      target_os = "macos",
-                      target_os = "netbsd",
-                      target_os = "openbsd"))]
-            B7200 => BaudRate::B7200,
-            B9600 => BaudRate::B9600,
-            #[cfg(any(target_os = "dragonfly",
-                      target_os = "freebsd",
-                      target_os = "macos",
-                      target_os = "netbsd",
-                      target_os = "openbsd"))]
-            B14400 => BaudRate::B14400,
-            B19200 => BaudRate::B19200,
-            #[cfg(any(target_os = "dragonfly",
-                      target_os = "freebsd",
-                      target_os = "macos",
-                      target_os = "netbsd",
-                      target_os = "openbsd"))]
-            B28800 => BaudRate::B28800,
-            B38400 => BaudRate::B38400,
-            B57600 => BaudRate::B57600,
-            #[cfg(any(target_os = "dragonfly",
-                      target_os = "freebsd",
-                      target_os = "macos",
-                      target_os = "netbsd",
-                      target_os = "openbsd"))]
-            B76800 => BaudRate::B76800,
-            B115200 => BaudRate::B115200,
-            B230400 => BaudRate::B230400,
-            #[cfg(any(target_os = "android",
-                      target_os = "freebsd",
-                      target_os = "linux",
-                      target_os = "netbsd"))]
-            B460800 => BaudRate::B460800,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B500000 => BaudRate::B500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B576000 => BaudRate::B576000,
-            #[cfg(any(target_os = "android",
-                      target_os = "freebsd",
-                      target_os = "linux",
-                      target_os = "netbsd"))]
-            B921600 => BaudRate::B921600,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B1000000 => BaudRate::B1000000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B1152000 => BaudRate::B1152000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B1500000 => BaudRate::B1500000,
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            B2000000 => BaudRate::B2000000,
-            #[cfg(any(target_os = "android", all(target_os = "linux", not(target_arch = "sparc64"))))]
-            B2500000 => BaudRate::B2500000,
-            #[cfg(any(target_os = "android", all(target_os = "linux", not(target_arch = "sparc64"))))]
-            B3000000 => BaudRate::B3000000,
-            #[cfg(any(target_os = "android", all(target_os = "linux", not(target_arch = "sparc64"))))]
-            B3500000 => BaudRate::B3500000,
-            #[cfg(any(target_os = "android", all(target_os = "linux", not(target_arch = "sparc64"))))]
-            B4000000 => BaudRate::B4000000,
-            b => unreachable!("Invalid baud constant: {}", b),
-        }
-    }
-}
-
-// TODO: Include `TryFrom<u32> for BaudRate` once that API stabilizes
-#[cfg(any(target_os = "freebsd",
-          target_os = "dragonfly",
-          target_os = "ios",
-          target_os = "macos",
-          target_os = "netbsd",
-          target_os = "openbsd"))]
-impl From<BaudRate> for u32 {
-    fn from(b: BaudRate) -> u32 {
-        b as u32
-    }
-}
-
 // TODO: Add TCSASOFT, which will require treating this as a bitfield.
 libc_enum! {
     /// Specify when a port configuration change should occur.
     ///
     /// Used as an argument to `tcsetattr()`
-    #[repr(i32)]
-    pub enum SetArg {
+    pub enum SetArg: i32 {
         /// The change will occur immediately
         TCSANOW,
         /// The change occurs after all output has been written
@@ -509,8 +393,7 @@ libc_enum! {
     /// Specify a combination of the input and output buffers to flush
     ///
     /// Used as an argument to `tcflush()`.
-    #[repr(i32)]
-    pub enum FlushArg {
+    pub enum FlushArg: i32 {
         /// Flush data that was received but not read
         TCIFLUSH,
         /// Flush data written but not transmitted
@@ -524,8 +407,7 @@ libc_enum! {
     /// Specify how transmission flow should be altered
     ///
     /// Used as an argument to `tcflow()`.
-    #[repr(i32)]
-    pub enum FlowArg {
+    pub enum FlowArg: i32 {
         /// Suspend transmission
         TCOOFF,
         /// Resume transmission
@@ -540,8 +422,7 @@ libc_enum! {
 // TODO: Make this usable directly as a slice index.
 libc_enum! {
     /// Indices into the `termios.c_cc` array for special characters.
-    #[repr(usize)]
-    pub enum SpecialCharacterIndices {
+    pub enum SpecialCharacterIndices: usize {
         VDISCARD,
         #[cfg(any(target_os = "dragonfly",
                 target_os = "freebsd",
@@ -929,7 +810,7 @@ cfg_if!{
         /// `cfsetispeed()` sets the intput baud rate in the given `Termios` structure.
         pub fn cfsetispeed<T: Into<u32>>(termios: &mut Termios, baud: T) -> Result<()> {
             let inner_termios = unsafe { termios.get_libc_termios_mut() };
-            let res = unsafe { libc::cfsetispeed(inner_termios, baud.into() as libc::speed_t) };
+            let res = unsafe { libc::cfsetispeed(inner_termios, baud.into()) };
             termios.update_wrapper();
             Errno::result(res).map(drop)
         }
@@ -940,7 +821,7 @@ cfg_if!{
         /// `cfsetospeed()` sets the output baud rate in the given termios structure.
         pub fn cfsetospeed<T: Into<u32>>(termios: &mut Termios, baud: T) -> Result<()> {
             let inner_termios = unsafe { termios.get_libc_termios_mut() };
-            let res = unsafe { libc::cfsetospeed(inner_termios, baud.into() as libc::speed_t) };
+            let res = unsafe { libc::cfsetospeed(inner_termios, baud.into()) };
             termios.update_wrapper();
             Errno::result(res).map(drop)
         }
@@ -952,7 +833,7 @@ cfg_if!{
         /// this is part of the 4.4BSD standard and not part of POSIX.
         pub fn cfsetspeed<T: Into<u32>>(termios: &mut Termios, baud: T) -> Result<()> {
             let inner_termios = unsafe { termios.get_libc_termios_mut() };
-            let res = unsafe { libc::cfsetspeed(inner_termios, baud.into() as libc::speed_t) };
+            let res = unsafe { libc::cfsetspeed(inner_termios, baud.into()) };
             termios.update_wrapper();
             Errno::result(res).map(drop)
         }
@@ -963,7 +844,7 @@ cfg_if!{
         /// `cfgetispeed()` extracts the input baud rate from the given `Termios` structure.
         pub fn cfgetispeed(termios: &Termios) -> BaudRate {
             let inner_termios = termios.get_libc_termios();
-            unsafe { libc::cfgetispeed(&*inner_termios) }.into()
+            BaudRate::try_from(unsafe { libc::cfgetispeed(&*inner_termios) }).unwrap()
         }
 
         /// Get output baud rate (see
@@ -972,7 +853,7 @@ cfg_if!{
         /// `cfgetospeed()` extracts the output baud rate from the given `Termios` structure.
         pub fn cfgetospeed(termios: &Termios) -> BaudRate {
             let inner_termios = termios.get_libc_termios();
-            unsafe { libc::cfgetospeed(&*inner_termios) }.into()
+            BaudRate::try_from(unsafe { libc::cfgetospeed(&*inner_termios) }).unwrap()
         }
 
         /// Set input baud rate (see
@@ -981,7 +862,7 @@ cfg_if!{
         /// `cfsetispeed()` sets the intput baud rate in the given `Termios` structure.
         pub fn cfsetispeed(termios: &mut Termios, baud: BaudRate) -> Result<()> {
             let inner_termios = unsafe { termios.get_libc_termios_mut() };
-            let res = unsafe { libc::cfsetispeed(inner_termios, baud as libc::speed_t) };
+            let res = unsafe { libc::cfsetispeed(inner_termios, baud.into()) };
             termios.update_wrapper();
             Errno::result(res).map(drop)
         }
@@ -992,7 +873,7 @@ cfg_if!{
         /// `cfsetospeed()` sets the output baud rate in the given `Termios` structure.
         pub fn cfsetospeed(termios: &mut Termios, baud: BaudRate) -> Result<()> {
             let inner_termios = unsafe { termios.get_libc_termios_mut() };
-            let res = unsafe { libc::cfsetospeed(inner_termios, baud as libc::speed_t) };
+            let res = unsafe { libc::cfsetospeed(inner_termios, baud.into()) };
             termios.update_wrapper();
             Errno::result(res).map(drop)
         }
@@ -1004,7 +885,7 @@ cfg_if!{
         /// this is part of the 4.4BSD standard and not part of POSIX.
         pub fn cfsetspeed(termios: &mut Termios, baud: BaudRate) -> Result<()> {
             let inner_termios = unsafe { termios.get_libc_termios_mut() };
-            let res = unsafe { libc::cfsetspeed(inner_termios, baud as libc::speed_t) };
+            let res = unsafe { libc::cfsetspeed(inner_termios, baud.into()) };
             termios.update_wrapper();
             Errno::result(res).map(drop)
         }
