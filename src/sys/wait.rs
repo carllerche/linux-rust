@@ -1,8 +1,8 @@
-use libc::{self, c_int};
-use Result;
 use errno::Errno;
+use libc::{self, c_int};
 use std::convert::TryFrom;
 use unistd::Pid;
+use Result;
 
 use sys::signal::Signal;
 
@@ -105,8 +105,9 @@ impl WaitStatus {
     pub fn pid(&self) -> Option<Pid> {
         use self::WaitStatus::*;
         match *self {
-            Exited(p, _)  | Signaled(p, _, _) |
-                Stopped(p, _) | Continued(p) => Some(p),
+            Exited(p, _) | Signaled(p, _, _) | Stopped(p, _) | Continued(p) => {
+                Some(p)
+            }
             StillAlive => None,
             #[cfg(any(target_os = "android", target_os = "linux"))]
             PtraceEvent(p, _, _) | PtraceSyscall(p) => Some(p),
@@ -211,7 +212,11 @@ impl WaitStatus {
     }
 }
 
-pub fn waitpid<P: Into<Option<Pid>>>(pid: P, options: Option<WaitPidFlag>) -> Result<WaitStatus> {
+/// Wait for an event of a child process, either for a specific PID, or all children by passing None as pid
+pub fn waitpid<P: Into<Option<Pid>>>(
+    pid: P,
+    options: Option<WaitPidFlag>,
+) -> Result<WaitStatus> {
     use self::WaitStatus::*;
 
     let mut status: i32 = 0;
@@ -235,6 +240,73 @@ pub fn waitpid<P: Into<Option<Pid>>>(pid: P, options: Option<WaitPidFlag>) -> Re
     }
 }
 
+/// The same as calling [waitpid](fn.waitpid.html)(None, None)
 pub fn wait() -> Result<WaitStatus> {
     waitpid(None, None)
+}
+
+/// Returns an iterator over all currently available events of child
+/// processes, as would be available via waitpid with the
+/// [`WNOHANG`](struct.WaitPidFlag.html#associatedconstant.WNOHANG) flag.
+///
+/// This iterator is best used with a signal handler on the signal `SIGCHLD`
+/// to handle all pending events. The iterator ends either
+/// if all remaining children are still running normally or no more children
+/// are running.
+///
+/// Note that you should not call this directly in a signal handler, since
+/// those have some restrictions on what may
+/// happen in them. Use a conditional variable to notify some other routine
+/// or use a crate like [signal_hook](https://crates.io/crates/signal-hook)
+/// ```
+/// fn handle_sigchld() {
+///     // one or more child events exist. We need to handle all now, because
+///     // the signal is not sent for each.
+///     nix::sys::wait::child_event_iter()
+///         // you probably want to do some error handling, instead of just
+///         //stopping the iterator
+///         .take_while(Result::is_ok)
+///         .for_each(|val| {
+///             println!("A child did something! {:?}", val);
+///         });
+/// }
+/// ```
+pub fn child_event_iter() -> ChildEventIter {
+    std::iter::from_fn(get_next_child_event)
+}
+type ChildEventIter =
+    std::iter::FromFn<fn() -> std::option::Option<Result<WaitStatus>>>;
+
+/// use waitpid with WNOHANG to poll the next event or return None if no more
+/// events exist
+fn get_next_child_event() -> Option<Result<WaitStatus>> {
+    match waitpid(None, Some(WaitPidFlag::WNOHANG)) {
+        Ok(status) => {
+            if status == WaitStatus::StillAlive {
+                None
+            } else {
+                Some(Ok(status))
+            }
+        }
+        Err(e) => {
+            if let crate::Error::Sys(crate::errno::Errno::ECHILD) = e {
+                // No more events to be waited on
+                None
+            } else {
+                // Some other error, which we cannot handle here
+                //
+                // This might be unecessary, since the other errors are either
+                // 1. EINTR which only occurs if WNOHANG is not used, but it
+                //    is used here
+                // 2. EINVAL which should be impossible since only valid
+                //    WaitPidFlags can be created
+                //
+                // Not having this error handling would make the API nicer,
+                // but it could introduce breakage on some
+                // systems that do not conform to the POSIX definition of
+                // waitpid, so lets leave it.
+                Some(Err(e))
+            }
+        }
+    }
 }
