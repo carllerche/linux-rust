@@ -463,6 +463,10 @@ pub enum ControlMessageOwned {
         target_os = "openbsd",
     ))]
     Ipv4RecvDstAddr(libc::in_addr),
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Ipv4RecvErr(libc::sock_extended_err, sockaddr_in),
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    Ipv6RecvErr(libc::sock_extended_err, sockaddr_in6),
     /// Catch-all variant for unimplemented cmsg types.
     #[doc(hidden)]
     Unknown(UnknownCmsg),
@@ -545,6 +549,20 @@ impl ControlMessageOwned {
             (libc::IPPROTO_IP, libc::IP_RECVDSTADDR) => {
                 let dl = ptr::read_unaligned(p as *const libc::in_addr);
                 ControlMessageOwned::Ipv4RecvDstAddr(dl)
+            },
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            (libc::IPPROTO_IP, libc::IP_RECVERR) => {
+                let ee = p as *const libc::sock_extended_err;
+                let err = ptr::read_unaligned(ee);
+                let addr = ptr::read_unaligned(libc::SO_EE_OFFENDER(ee) as *const sockaddr_in);
+                ControlMessageOwned::Ipv4RecvErr(err, addr)
+            },
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            (libc::IPPROTO_IPV6, libc::IPV6_RECVERR) => {
+                let ee = p as *const libc::sock_extended_err;
+                let err = ptr::read_unaligned(ee);
+                let addr = ptr::read_unaligned(libc::SO_EE_OFFENDER(ee) as *const sockaddr_in6);
+                ControlMessageOwned::Ipv6RecvErr(err, addr)
             },
             (_, _) => {
                 let sl = slice::from_raw_parts(p, len);
