@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - ReleaseDate
 ### Added
+- Added `mkdtemp` wrapper
+(#[1297](https://github.com/nix-rust/nix/pull/1297))
 - Added Netlink protocol families to the `SockProtocol` enum
 (#[1289](https://github.com/nix-rust/nix/pull/1289))
 ### Changed
