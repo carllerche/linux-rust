@@ -2,19 +2,20 @@
 use std::mem;
 
 #[cfg(any(target_os = "linux"))]
-use libc::{self, __rlimit_resource_t, rlimit, RLIM_INFINITY};
+use libc::{__rlimit_resource_t, rlimit, RLIM_INFINITY};
 
 #[cfg(any(
     target_os = "freebsd",
     target_os = "openbsd",
     target_os = "netbsd",
     target_os = "macos",
+    target_os = "ios",
     target_os = "android",
     target_os = "dragonfly",
     target_os = "bitrig",
     target_os = "linux",
 ))]
-use libc::{self, c_int, rlimit, RLIM_INFINITY};
+use libc::{c_int, rlimit, RLIM_INFINITY};
 
 use crate::errno::Errno;
 use crate::Result;
@@ -147,8 +148,8 @@ pub fn getrlimit(resource: Resource) -> Result<(Option<rlim_t>, Option<rlim_t>)>
     let rlim = unsafe { rlim.assume_init() };
     Errno::result(res).map(|_| {
         (
-            Some(rlim.rlim_cur).filter(|x| x != &RLIM_INFINITY),
-            Some(rlim.rlim_max).filter(|x| x != &RLIM_INFINITY),
+            Some(rlim.rlim_cur).filter(|x| *x != RLIM_INFINITY),
+            Some(rlim.rlim_max).filter(|x| *x != RLIM_INFINITY),
         )
     })
 }
@@ -189,7 +190,7 @@ pub fn setrlimit(
     rlim.rlim_max = hard_limit.unwrap_or(RLIM_INFINITY);
 
     #[cfg(target_os = "linux")]
-    let res = unsafe { libc::setrlimit(resource as __rlimit_resource_t, &rlim as *const rlimit) };
+    let res = unsafe { libc::setrlimit(resource as __rlimit_resource_t, &rlim as *const _) };
     #[cfg(any(
         target_os = "freebsd",
         target_os = "openbsd",
@@ -199,6 +200,6 @@ pub fn setrlimit(
         target_os = "dragonfly",
         target_os = "bitrig",
     ))]
-    let res = unsafe { libc::setrlimit(resource as c_int, &rlim as *const rlimit) };
+    let res = unsafe { libc::setrlimit(resource as c_int, &rlim as *const _) };
     Errno::result(res).map(|_| ())
 }
