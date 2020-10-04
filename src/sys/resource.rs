@@ -1,4 +1,5 @@
 //! Configure the process resource limits.
+use cfg_if::cfg_if;
 use std::mem;
 
 #[cfg(any(target_os = "linux"))]
@@ -21,98 +22,127 @@ use crate::Result;
 
 pub use libc::rlim_t;
 
-#[cfg(any(target_os = "linux"))]
-libc_enum! {
-    #[repr(u32)]
-    pub enum Resource {
-        /// See detail of each Resource https://man7.org/linux/man-pages/man2/getrlimit.2.html
-        RLIMIT_AS,
-        RLIMIT_CORE,
-        RLIMIT_CPU,
-        RLIMIT_DATA,
-        RLIMIT_FSIZE,
-        RLIMIT_LOCKS,
-        RLIMIT_MEMLOCK,
-        RLIMIT_MSGQUEUE,
-        RLIMIT_NICE,
-        RLIMIT_NOFILE,
-        RLIMIT_NPROC,
-        RLIMIT_RSS,
-        RLIMIT_RTPRIO,
-        RLIMIT_RTTIME,
-        RLIMIT_SIGPENDING,
-        RLIMIT_STACK,
-    }
-}
+cfg_if! {
+    if #[cfg(target_os = "linux")]{
+        if #[cfg(target_env = "gnu")]{
+            libc_enum!{
+                #[repr(u32)]
+                pub enum Resource {
+                    /// See detail of each Resource https://man7.org/linux/man-pages/man2/getrlimit.2.html
+                    RLIMIT_AS,
+                    RLIMIT_CORE,
+                    RLIMIT_CPU,
+                    RLIMIT_DATA,
+                    RLIMIT_FSIZE,
+                    RLIMIT_LOCKS,
+                    RLIMIT_MEMLOCK,
+                    RLIMIT_MSGQUEUE,
+                    RLIMIT_NICE,
+                    RLIMIT_NOFILE,
+                    RLIMIT_NPROC,
+                    RLIMIT_RSS,
+                    RLIMIT_RTPRIO,
+                    RLIMIT_RTTIME,
+                    RLIMIT_SIGPENDING,
+                    RLIMIT_STACK,
+                }
+            }
+        }else{
+            libc_enum!{
+                #[repr(i32)]
+                pub enum Resource {
+                    /// See detail of each Resource https://man7.org/linux/man-pages/man2/getrlimit.2.html
+                    RLIMIT_AS,
+                    RLIMIT_CORE,
+                    RLIMIT_CPU,
+                    RLIMIT_DATA,
+                    RLIMIT_FSIZE,
+                    RLIMIT_LOCKS,
+                    RLIMIT_MEMLOCK,
+                    RLIMIT_MSGQUEUE,
+                    RLIMIT_NICE,
+                    RLIMIT_NOFILE,
+                    RLIMIT_NPROC,
+                    RLIMIT_RSS,
+                    RLIMIT_RTPRIO,
+                    RLIMIT_RTTIME,
+                    RLIMIT_SIGPENDING,
+                    RLIMIT_STACK,
+                }
+            }
+        }
+    }else if #[cfg(any(
+        target_os = "freebsd",
+        target_os = "openbsd",
+        target_os = "netbsd",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "android",
+        target_os = "dragonfly",
+        target_os = "bitrig",
+    ))]{
+        libc_enum! {
+            #[repr(i32)]
+            pub enum Resource {
+                /// See detail of each Resource https://man7.org/linux/man-pages/man2/getrlimit.2.html
+                /// BSD specific Resource https://www.freebsd.org/cgi/man.cgi?query=setrlimit
+                RLIMIT_AS,
+                RLIMIT_CORE,
+                RLIMIT_CPU,
+                RLIMIT_DATA,
+                RLIMIT_FSIZE,
+                RLIMIT_NOFILE,
+                RLIMIT_STACK,
 
-#[cfg(any(
-    target_os = "freebsd",
-    target_os = "openbsd",
-    target_os = "netbsd",
-    target_os = "macos",
-    target_os = "ios",
-    target_os = "android",
-    target_os = "dragonfly",
-    target_os = "bitrig",
-))]
-libc_enum! {
-    #[repr(i32)]
-    pub enum Resource {
-        /// See detail of each Resource https://man7.org/linux/man-pages/man2/getrlimit.2.html
-        /// BSD specific Resource https://www.freebsd.org/cgi/man.cgi?query=setrlimit
-        RLIMIT_AS,
-        RLIMIT_CORE,
-        RLIMIT_CPU,
-        RLIMIT_DATA,
-        RLIMIT_FSIZE,
-        RLIMIT_NOFILE,
-        RLIMIT_STACK,
+                // platform specific
+                #[cfg(target_os = "freebsd")]
+                RLIMIT_KQUEUES,
 
-        // platform specific
-        #[cfg(target_os = "freebsd")]
-        RLIMIT_KQUEUES,
+                #[cfg(any(target_os = "android"))]
+                RLIMIT_LOCKS,
 
-        #[cfg(any(target_os = "android"))]
-        RLIMIT_LOCKS,
+                #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "openbsd"))]
+                RLIMIT_MEMLOCK,
 
-        #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "openbsd"))]
-        RLIMIT_MEMLOCK,
+                #[cfg(any(target_os = "android"))]
+                RLIMIT_MSGQUEUE,
 
-        #[cfg(any(target_os = "android"))]
-        RLIMIT_MSGQUEUE,
+                #[cfg(any(target_os = "android"))]
+                RLIMIT_NICE,
 
-        #[cfg(any(target_os = "android"))]
-        RLIMIT_NICE,
+                #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "openbsd"))]
+                RLIMIT_NPROC,
 
-        #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "openbsd"))]
-        RLIMIT_NPROC,
+                #[cfg(target_os = "freebsd")]
+                RLIMIT_NPTS,
 
-        #[cfg(target_os = "freebsd")]
-        RLIMIT_NPTS,
+                #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "openbsd"))]
+                RLIMIT_RSS,
 
-        #[cfg(any(target_os = "android", target_os = "freebsd", target_os = "openbsd"))]
-        RLIMIT_RSS,
+                #[cfg(any(target_os = "android"))]
+                RLIMIT_RTPRIO,
 
-        #[cfg(any(target_os = "android"))]
-        RLIMIT_RTPRIO,
+                #[cfg(any(target_os = "android"))]
+                RLIMIT_SIGPENDING,
 
-        #[cfg(any(target_os = "android"))]
-        RLIMIT_SIGPENDING,
+                #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
+                RLIMIT_SBSIZE,
 
-        #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
-        RLIMIT_SBSIZE,
+                #[cfg(target_os = "freebsd")]
+                RLIMIT_SWAP,
 
-        #[cfg(target_os = "freebsd")]
-        RLIMIT_SWAP,
-
-        #[cfg(target_os = "freebsd")]
-        RLIMIT_VMEM,
+                #[cfg(target_os = "freebsd")]
+                RLIMIT_VMEM,
+            }
+        }
+    }else{
+        // unkown os
     }
 }
 
 /// Get the current processes resource limits
 ///
-/// A value of None indicates that there's no limit.
+/// A value of `None` indicates that there's no limit.
 ///
 /// # Parameters
 ///
