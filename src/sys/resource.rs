@@ -49,7 +49,8 @@ cfg_if! {
             pub enum Resource {
                 /// See detail of each Resource https://man7.org/linux/man-pages/man2/getrlimit.2.html
                 /// BSD specific Resource https://www.freebsd.org/cgi/man.cgi?query=setrlimit
-                RLIMIT_AS,
+                #[cfg(not(target_os = "netbsd"))]
+                RLIMIT_AS, // not in the libc for netbsd
                 RLIMIT_CORE,
                 RLIMIT_CPU,
                 RLIMIT_DATA,
