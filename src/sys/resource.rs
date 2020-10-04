@@ -13,7 +13,6 @@ use libc::{__rlimit_resource_t, rlimit, RLIM_INFINITY};
     target_os = "android",
     target_os = "dragonfly",
     target_os = "bitrig",
-    target_os = "linux",
 ))]
 use libc::{c_int, rlimit, RLIM_INFINITY};
 
@@ -49,6 +48,12 @@ libc_enum! {
         /// SIGSEGV signal is generated.
         RLIMIT_STACK,
 
+        /// Linux
+        /// This is a limit (in microseconds) on the amount of CPU time that a process scheduled
+        /// under a real-time scheduling policy may consume without making a blocking system call.
+        #[cfg(any(target_os = "linux"))]
+        RLIMIT_RTTIME,
+
         // BSDs and Linux
         /// This is the maximum number of bytes of memory that may be locked into RAM. This limit
         /// is in effect rounded down to the nearest multiple of the system page size.
@@ -79,10 +84,6 @@ libc_enum! {
         /// using sched_setscheduler(2) and sched_setparam(2).
         #[cfg(any(target_os = "android", target_os = "linux"))]
         RLIMIT_RTPRIO,
-        /// This is a limit (in microseconds) on the amount of CPU time that a process scheduled
-        /// under a real-time scheduling policy may consume without making a blocking system call.
-        #[cfg(any(target_os = "android", target_os = "linux"))]
-        RLIMIT_RTTIME,
         /// This is a limit on the number of signals that may be queued for the real user ID of the
         /// calling process. Both standard and real-time signals are counted for the purpose of
         /// checking this limit.
