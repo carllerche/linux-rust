@@ -33,12 +33,11 @@ pub fn test_resource_limits_nofile() {
 pub fn test_resource_limits_stack() {
     let (mut soft_limit, hard_limit) = getrlimit(Resource::RLIMIT_STACK).unwrap();
     let orig_limit = (soft_limit, hard_limit);
-    eprintln!("\n{:?} --- {:?}", soft_limit, hard_limit);
-    soft_limit = Some(4194304);
+
+    soft_limit = hard_limit.or(Some(4194304));
     setrlimit(Resource::RLIMIT_STACK, soft_limit, hard_limit).unwrap();
 
     let limit2 = getrlimit(Resource::RLIMIT_STACK).unwrap();
-    eprintln!("\n{:?} --- {:?}", limit2.0, limit2.1);
 
     assert_eq!(soft_limit, limit2.0);
     assert_eq!(hard_limit, limit2.1);

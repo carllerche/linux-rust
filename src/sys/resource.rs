@@ -1,6 +1,5 @@
 //! Configure the process resource limits.
 use cfg_if::cfg_if;
-use std::mem;
 
 use crate::errno::Errno;
 use crate::Result;
@@ -131,22 +130,14 @@ cfg_if! {
 ///
 /// [`Resource`]: enum.Resource.html
 pub fn getrlimit(resource: Resource) -> Result<(Option<rlim_t>, Option<rlim_t>)> {
-    let mut old_rlim = mem::MaybeUninit::<rlimit>::uninit();
+    let mut old_rlim = rlimit {
+        rlim_cur: 0,
+        rlim_max: 0,
+    };
 
     cfg_if! {
         if #[cfg(all(target_os = "linux", target_env = "gnu"))]{
-            // the below implementation is mimicing the similar implementation in golang
-            // https://go-review.googlesource.com/c/sys/+/230478/2/unix/syscall_linux_arm64.go#176
-            // seems for some of the architectures, we prefer to use prlimit instead of {g,s}etrlimit
-
-            let res = unsafe { libc::prlimit(0, resource as __rlimit_resource_t, std::ptr::null(), old_rlim.as_mut_ptr() as *mut _) };
-            if res == -1 {
-                // when error happens, the map will return an Err, the (None, None) is just make compiler
-                // happy, it will not go through
-                return Errno::result(res).map(|_|{ (None, None) });
-            }
-            let res = unsafe { libc::getrlimit(resource as __rlimit_resource_t, old_rlim.as_mut_ptr() as *mut _) };
-
+            let res = unsafe { libc::getrlimit(resource as __rlimit_resource_t, &mut old_rlim) };
         }else if #[cfg(any(
             target_os = "freebsd",
             target_os = "openbsd",
@@ -158,11 +149,10 @@ pub fn getrlimit(resource: Resource) -> Result<(Option<rlim_t>, Option<rlim_t>)>
             target_os = "bitrig",
             target_os = "linux", // target_env != "gnu"
         ))]{
-            let res = unsafe { libc::getrlimit(resource as c_int, old_rlim.as_mut_ptr() as *mut _) };
+            let res = unsafe { libc::getrlimit(resource as c_int, &mut old_rlim) };
         }
     }
 
-    let old_rlim = unsafe { old_rlim.assume_init() };
     Errno::result(res).map(|_| {
         (
             Some(old_rlim.rlim_cur).filter(|x| *x != RLIM_INFINITY),
@@ -204,10 +194,10 @@ pub fn setrlimit(
     soft_limit: Option<rlim_t>,
     hard_limit: Option<rlim_t>,
 ) -> Result<()> {
-    let mut new_rlim = unsafe { mem::MaybeUninit::<rlimit>::uninit().assume_init() };
-    new_rlim.rlim_cur = soft_limit.unwrap_or(RLIM_INFINITY);
-    new_rlim.rlim_max = hard_limit.unwrap_or(RLIM_INFINITY);
-
+    let new_rlim = rlimit {
+        rlim_cur: soft_limit.unwrap_or(RLIM_INFINITY),
+        rlim_max: hard_limit.unwrap_or(RLIM_INFINITY),
+    };
     cfg_if! {
         if #[cfg(all(target_os = "linux", target_env = "gnu"))]{
             // the below implementation is mimicing the similar implementation in golang
