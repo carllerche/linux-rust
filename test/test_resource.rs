@@ -1,4 +1,4 @@
-use nix::sys::resource::{Resource, getrlimit, setrlimit};
+use nix::sys::resource::{getrlimit, setrlimit, Resource};
 
 /// Tests the RLIMIT_NOFILE functionality of getrlimit(), where the resource RLIMIT_NOFILE refers
 /// to the maximum file descriptor number that can be opened by the process (aka the maximum number
@@ -24,7 +24,7 @@ pub fn test_resource_limits_nofile() {
 }
 
 /// Tests the RLIMIT_STACK functionality of getrlimit(), where the resource RLIMIT_STACK refers to
-/// the maximum stack size that can be spawned by the current process before SIGSEGV is generated. 
+/// the maximum stack size that can be spawned by the current process before SIGSEGV is generated.
 ///
 /// We first save the current stack limits, then newly set the soft limit to the same size as the
 /// hard limit. We check to make sure these limits have been updated properly. We then set the

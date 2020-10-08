@@ -1,18 +1,28 @@
 //! Configure the process resource limits.
 use std::mem;
 
-#[cfg(not(any(target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "macos")))]
-use libc::{self, rlimit, __rlimit_resource_t, RLIM_INFINITY};
+#[cfg(not(any(
+    target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "netbsd",
+    target_os = "macos"
+)))]
+use libc::{self, __rlimit_resource_t, rlimit, RLIM_INFINITY};
 
-#[cfg(any(target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "macos"))]
-use libc::{self, rlimit, c_int, RLIM_INFINITY};
+#[cfg(any(
+    target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "netbsd",
+    target_os = "macos"
+))]
+use libc::{self, c_int, rlimit, RLIM_INFINITY};
 
 pub use libc::rlim_t;
 
 use {Errno, Result};
 
 #[cfg(target_os = "linux")]
-libc_enum!{
+libc_enum! {
     /// A resource that limits apply to
     #[repr(u32)]
     pub enum Resource {
@@ -96,7 +106,7 @@ libc_enum!{
 }
 
 #[cfg(not(target_os = "linux"))]
-libc_enum!{
+libc_enum! {
     /// A resource that limits apply to
     #[repr(i32)]
     pub enum Resource {
@@ -205,16 +215,37 @@ libc_enum!{
 pub fn getrlimit(resource: Resource) -> Result<(Option<rlim_t>, Option<rlim_t>)> {
     let mut rlim = mem::MaybeUninit::<&rlimit>::uninit();
 
-    #[cfg(not(any(target_os = "freebsd", target_os = "macos", target_os = "openbsd", target_os = "netbsd")))]
-    let res = unsafe { libc::getrlimit(resource as __rlimit_resource_t, rlim.as_mut_ptr() as *mut _) };
-    #[cfg(any(target_os = "freebsd", target_os = "macos", target_os = "openbsd", target_os = "netbsd"))]
+    #[cfg(not(any(
+        target_os = "freebsd",
+        target_os = "macos",
+        target_os = "openbsd",
+        target_os = "netbsd"
+    )))]
+    let res =
+        unsafe { libc::getrlimit(resource as __rlimit_resource_t, rlim.as_mut_ptr() as *mut _) };
+    #[cfg(any(
+        target_os = "freebsd",
+        target_os = "macos",
+        target_os = "openbsd",
+        target_os = "netbsd"
+    ))]
     let res = unsafe { libc::getrlimit(resource as c_int, rlim.as_mut_ptr() as *mut _) };
 
     let rlim = unsafe { rlim.assume_init() };
     // TODO: use Option::filter after it has been stabilized
     Errno::result(res).map(|_| {
-        (if rlim.rlim_cur != RLIM_INFINITY { Some(rlim.rlim_cur) } else { None },
-         if rlim.rlim_max != RLIM_INFINITY { Some(rlim.rlim_max) } else { None })
+        (
+            if rlim.rlim_cur != RLIM_INFINITY {
+                Some(rlim.rlim_cur)
+            } else {
+                None
+            },
+            if rlim.rlim_max != RLIM_INFINITY {
+                Some(rlim.rlim_max)
+            } else {
+                None
+            },
+        )
     })
 }
 
@@ -244,14 +275,28 @@ pub fn getrlimit(resource: Resource) -> Result<(Option<rlim_t>, Option<rlim_t>)>
 /// [setrlimit(2)](https://linux.die.net/man/2/setrlimit)
 ///
 /// [`Resource`]: enum.Resource.html
-pub fn setrlimit(resource: Resource, soft_limit: Option<rlim_t>, hard_limit: Option<rlim_t>) -> Result<()> {
+pub fn setrlimit(
+    resource: Resource,
+    soft_limit: Option<rlim_t>,
+    hard_limit: Option<rlim_t>,
+) -> Result<()> {
     let mut rlim: rlimit = unsafe { mem::zeroed() };
     rlim.rlim_cur = soft_limit.unwrap_or(RLIM_INFINITY);
     rlim.rlim_max = hard_limit.unwrap_or(RLIM_INFINITY);
-    
-    #[cfg(not(any(target_os = "freebsd", target_os = "macos", target_os = "openbsd", target_os = "netbsd")))]
+
+    #[cfg(not(any(
+        target_os = "freebsd",
+        target_os = "macos",
+        target_os = "openbsd",
+        target_os = "netbsd"
+    )))]
     let res = unsafe { libc::setrlimit(resource as __rlimit_resource_t, &rlim as *const _) };
-    #[cfg(any(target_os = "freebsd", target_os = "macos", target_os = "openbsd", target_os = "netbsd"))]
+    #[cfg(any(
+        target_os = "freebsd",
+        target_os = "macos",
+        target_os = "openbsd",
+        target_os = "netbsd"
+    ))]
     let res = unsafe { libc::setrlimit(resource as c_int, &rlim as *const _) };
 
     Errno::result(res).map(|_| ())
