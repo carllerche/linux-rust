@@ -8,7 +8,6 @@ pub use libc::rlim_t;
 cfg_if! {
     if #[cfg(all(target_os = "linux", target_env = "gnu"))]{
         use libc::{__rlimit_resource_t, rlimit, RLIM_INFINITY};
-        use crate::Error;
     }else{
         use libc::{c_int, rlimit, RLIM_INFINITY};
     }
@@ -117,6 +116,7 @@ libc_enum! {
 /// [getrlimit(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/getrlimit.html#tag_16_215)
 ///
 /// [`Resource`]: enum.Resource.html
+
 pub fn getrlimit(resource: Resource) -> Result<(Option<rlim_t>, Option<rlim_t>)> {
     let mut old_rlim = rlimit {
         rlim_cur: 0,
@@ -168,6 +168,9 @@ pub fn getrlimit(resource: Resource) -> Result<(Option<rlim_t>, Option<rlim_t>)>
 /// [setrlimit(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/getrlimit.html#tag_16_215)
 ///
 /// [`Resource`]: enum.Resource.html
+///
+/// Note: `setrlimit` provides a safe wrapper to libc's `setrlimit`. For the
+/// platform that are not compatible, try using `prlimit` to set rlimit.
 pub fn setrlimit(
     resource: Resource,
     soft_limit: Option<rlim_t>,
@@ -179,17 +182,6 @@ pub fn setrlimit(
     };
     cfg_if! {
         if #[cfg(all(target_os = "linux", target_env = "gnu"))]{
-            // the below implementation is mimicing the similar implementation in golang
-            // https://go-review.googlesource.com/c/sys/+/230478/2/unix/syscall_linux_arm64.go#176
-            // seems for some of the architectures, we prefer to use prlimit instead of {g,s}etrlimit
-            let res = unsafe { libc::prlimit(0, resource as __rlimit_resource_t, &new_rlim as *const _, std::ptr::null_mut()) };
-            if res == -1 {
-                match Errno::last() {
-                    Errno::ENOSYS =>{}
-                    e => {return Err(Error::Sys(e));}
-                }
-            }
-
             let res = unsafe { libc::setrlimit(resource as __rlimit_resource_t, &new_rlim as *const _) };
         }else{
             let res = unsafe { libc::setrlimit(resource as c_int, &new_rlim as *const _) };
