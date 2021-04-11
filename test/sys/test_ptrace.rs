@@ -127,6 +127,8 @@ fn test_ptrace_interrupt() {
     use std::thread::sleep;
     use std::time::Duration;
 
+    require_capability!(CAP_SYS_PTRACE);
+
     let _m = crate::FORK_MTX.lock().expect("Mutex got poisoned by another test");
 
     match unsafe{fork()}.expect("Error: Fork Failed") {
