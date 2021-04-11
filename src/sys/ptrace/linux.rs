@@ -385,6 +385,7 @@ pub fn cont<T: Into<Option<Signal>>>(pid: Pid, sig: T) -> Result<()> {
 /// Stop a tracee, as with `ptrace(PTRACE_INTERRUPT, ...)`
 ///
 /// This request is equivalent to `ptrace(PTRACE_INTERRUPT, ...)`
+#[cfg(all(target_os = "linux", not(any(target_arch = "mips", target_arch = "mips64"))))]
 pub fn interrupt(pid: Pid) -> Result<()> {
     unsafe {
         ptrace_other(Request::PTRACE_INTERRUPT, pid, ptr::null_mut(), ptr::null_mut()).map(drop)

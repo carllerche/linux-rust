@@ -115,6 +115,8 @@ fn test_ptrace_cont() {
     }
 }
 
+// ptrace::interrupt is only available in these platforms
+#[cfg(all(target_os = "linux", not(any(target_arch = "mips", target_arch = "mips64"))))]
 #[test]
 fn test_ptrace_interrupt() {
     use nix::sys::ptrace;
