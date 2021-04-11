@@ -382,6 +382,15 @@ pub fn cont<T: Into<Option<Signal>>>(pid: Pid, sig: T) -> Result<()> {
     }
 }
 
+/// Stop a tracee, as with `ptrace(PTRACE_INTERRUPT, ...)`
+///
+/// This request is equivalent to `ptrace(PTRACE_INTERRUPT, ...)`
+pub fn interrupt(pid: Pid) -> Result<()> {
+    unsafe {
+        ptrace_other(Request::PTRACE_INTERRUPT, pid, ptr::null_mut(), ptr::null_mut()).map(drop)
+    }
+}
+
 /// Issues a kill request as with `ptrace(PTRACE_KILL, ...)`
 ///
 /// This request is equivalent to `ptrace(PTRACE_CONT, ..., SIGKILL);`
