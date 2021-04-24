@@ -97,8 +97,6 @@ libc_enum!{
         #[cfg(all(target_os = "linux", not(any(target_arch = "mips",
                                                target_arch = "mips64"))))]
         PTRACE_SETREGSET,
-        #[cfg(all(target_os = "linux", not(any(target_arch = "mips",
-                                               target_arch = "mips64"))))]
         PTRACE_SEIZE,
         PTRACE_INTERRUPT,
         #[cfg(all(target_os = "linux", not(any(target_arch = "mips",
@@ -335,7 +333,6 @@ pub fn attach(pid: Pid) -> Result<()> {
 /// Attach to a running process, as with `ptrace(PTRACE_SEIZE, ...)`
 ///
 /// Attaches to the process specified in pid, making it a tracee of the calling process.
-#[cfg(all(target_os = "linux", not(any(target_arch = "mips", target_arch = "mips64"))))]
 pub fn seize(pid: Pid, options: Options) -> Result<()> {
     unsafe {
         ptrace_other(
@@ -383,7 +380,6 @@ pub fn cont<T: Into<Option<Signal>>>(pid: Pid, sig: T) -> Result<()> {
 /// Stop a tracee, as with `ptrace(PTRACE_INTERRUPT, ...)`
 ///
 /// This request is equivalent to `ptrace(PTRACE_INTERRUPT, ...)`
-#[cfg(all(target_os = "linux", not(any(target_arch = "mips", target_arch = "mips64"))))]
 pub fn interrupt(pid: Pid) -> Result<()> {
     unsafe {
         ptrace_other(Request::PTRACE_INTERRUPT, pid, ptr::null_mut(), ptr::null_mut()).map(drop)
