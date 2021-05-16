@@ -115,7 +115,7 @@ fn test_ptrace_cont() {
     }
 }
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(target_os = "linux")]
 #[test]
 fn test_ptrace_interrupt() {
     use nix::sys::ptrace;
