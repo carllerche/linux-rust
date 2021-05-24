@@ -215,6 +215,112 @@ mod sched_linux_like {
 
         Errno::result(res).map(drop)
     }
+
+    libc_bitflags! {
+        pub struct SchedFlags: c_int {
+            #[cfg(target_os = "android")]
+            SCHED_NORMAL;
+            #[cfg(target_os = "linux")]
+            SCHED_OTHER;
+            SCHED_FIFO;
+            SCHED_RR;
+            SCHED_BATCH;
+            SCHED_IDLE;
+            #[cfg(target_os = "android")]
+            SCHED_DEADLINE;
+            #[cfg(target_os = "linux")]
+            SCHED_RESET_ON_FORK;
+        }
+    }
+
+    #[repr(transparent)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+    pub struct SchedParam(libc::sched_param);
+
+    impl SchedParam {
+        pub fn new(priority: i32) -> Self {
+            let mut sched_param: libc::sched_param = unsafe { mem::zeroed() };
+            sched_param.sched_priority = priority;
+            SchedParam(sched_param)
+        }
+
+        pub fn priority(&self) -> i32 {
+            self.0.sched_priority
+        }
+    }
+
+    impl Default for SchedParam {
+        fn default() -> Self {
+            SchedParam::new(0)
+        }
+    }
+
+    /// Get minimum priority value for policy
+    ///
+    /// See also [`sched_get_priority_min(2)`](https://man7.org/linux/man-pages/man2/sched_get_priority_min.2.html)
+    pub fn sched_get_priority_min(policy: SchedFlags) -> Result<i32> {
+        let res = unsafe { libc::sched_get_priority_min(policy.bits()) };
+
+        Errno::result(res)
+    }
+
+    /// Get maximum priority value for policy
+    ///
+    /// See also [`sched_get_priority_max(2)`](https://man7.org/linux/man-pages/man2/sched_get_priority_max.2.html)
+    pub fn sched_get_priority_max(policy: SchedFlags) -> Result<i32> {
+        let res = unsafe { libc::sched_get_priority_max(policy.bits()) };
+
+        Errno::result(res)
+    }
+
+    /// Set thread's scheduling parameters
+    ///
+    /// `pid` is the thread ID to update.
+    /// If `pid` is None or zero, then the parameters for the calling thread are set.
+    ///
+    /// See also [`sched_setparam(2)`](https://man7.org/linux/man-pages/man2/sched_setparam.2.html)
+    pub fn sched_setparam(pid: Option<Pid>, sched_param: SchedParam) -> Result<()> {
+        let res = unsafe { libc::sched_setparam(pid.unwrap_or(Pid::from_raw(0)).into(), &sched_param.0) };
+
+        Errno::result(res).map(drop)
+    }
+
+    /// Get thread's scheduling parameters
+    ///
+    /// `pid` is the thread ID to check.
+    /// If `pid` is None or zero, then the parameters for the calling thread are retrieved.
+    ///
+    /// See also [`sched_getparam(2)`](https://man7.org/linux/man-pages/man2/sched_getparam.2.html)
+    pub fn sched_getparam(pid: Option<Pid>) -> Result<SchedParam> {
+        let mut sched_param = mem::MaybeUninit::uninit();
+        let res = unsafe { libc::sched_getparam(pid.unwrap_or(Pid::from_raw(0)).into(), sched_param.as_mut_ptr()) };
+
+        Errno::result(res).map(|_| unsafe { SchedParam(sched_param.assume_init()) })
+    }
+
+    /// Set thread's scheduling policy and parameters
+    ///
+    /// `pid` is the thread ID to update.
+    /// If `pid` is None or zero, then the policy and parameters for the calling thread are set.
+    ///
+    /// See also [`sched_setscheduler(2)`](https://man7.org/linux/man-pages/man2/sched_setscheduler.2.html)
+    pub fn sched_setscheduler(pid: Option<Pid>, policy: SchedFlags, sched_param: SchedParam) -> Result<()> {
+        let res = unsafe { libc::sched_setscheduler(pid.unwrap_or(Pid::from_raw(0)).into(), policy.bits(), &sched_param.0) };
+
+        Errno::result(res).map(drop)
+    }
+
+    /// Get thread's scheduling policy and parameters
+    ///
+    /// `pid` is the thread ID to check.
+    /// If `pid` is None or zero, then the policy and parameters for the calling thread are retrieved.
+    ///
+    /// See also [`sched_getscheduler(2)`](https://man7.org/linux/man-pages/man2/sched_getscheduler.2.html)
+    pub fn sched_getscheduler(pid: Option<Pid>) -> Result<SchedFlags> {
+        let res = unsafe { libc::sched_getscheduler(pid.unwrap_or(Pid::from_raw(0)).into()) };
+
+        Errno::result(res).map(SchedFlags::from_bits_truncate)
+    }
 }
 
 /// Explicitly yield the processor to other threads.

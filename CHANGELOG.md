@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - Added TIMESTAMPNS support for linux
   (#[1402](https://github.com/nix-rust/nix/pull/1402))
+- Added `sched_setscheduler` and associated functions
+  (#[1435](https://github.com/nix-rust/nix/pull/1435))
 
 ### Changed
 - Made `forkpty` unsafe, like `fork`
