@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - Added TIMESTAMPNS support for linux
   (#[1402](https://github.com/nix-rust/nix/pull/1402))
+- Added public API for the `PTRACE_GETFPREGS` and `PTRACE_SETFPREGS` requests.
+  (#[1356](https://github.com/nix-rust/nix/pull/1356))
 
 ### Changed
 - Made `forkpty` unsafe, like `fork`
@@ -36,6 +38,8 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Added `personality` (#[1331](https://github.com/nix-rust/nix/pull/1331))
 - Added limited Fuchsia support (#[1285](https://github.com/nix-rust/nix/pull/1285))
 - Added `getpeereid` (#[1342](https://github.com/nix-rust/nix/pull/1342))
+
+### Fixed
 - Implemented `IntoIterator` for `Dir`
   (#[1333](https://github.com/nix-rust/nix/pull/1333)).
 
