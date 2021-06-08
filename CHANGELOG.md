@@ -6,10 +6,12 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased] - ReleaseDate
 ### Added
 - Added `if_nameindex` (#[1445](https://github.com/nix-rust/nix/pull/1445))
+- Exposed `SockAddr::from_raw_sockaddr` (#[1447](https://github.com/nix-rust/nix/pull/1447))
 
 ### Changed
 ### Fixed
 ### Removed
+- Removed `SockAddr/InetAddr::to_str` in favor of `<_ as ToString>::to_string` (#[1447](https://github.com/nix-rust/nix/pull/1447))
 
 ## [0.21.0] - 31 May 2021
 ### Added
