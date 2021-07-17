@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased] - ReleaseDate
 ### Added
+- Added `aarch64-apple-darwin` with Tier 3 support.
+  (#[1396](https://github.com/nix-rust/nix/pull/1396))
 
 - Added `IPV6_V6ONLY` sockopt.
   (#[1470](https://github.com/nix-rust/nix/pull/1470))
