@@ -1,5 +1,7 @@
 #[cfg(not(target_os = "redox"))]
 use nix::errno::Errno;
+#[cfg(not(target_os = "redox"))]
+use nix::sys::pthread::pthread_self;
 use nix::sys::signal::*;
 use nix::unistd::*;
 use std::convert::TryFrom;
@@ -15,6 +17,13 @@ fn test_kill_none() {
 fn test_killpg_none() {
     killpg(getpgrp(), None)
         .expect("Should be able to send signal to my process group.");
+}
+
+#[test]
+#[cfg(not(target_os = "redox"))]
+fn test_pthread_kill_none() {
+    pthread_kill(pthread_self(), None)
+        .expect("Should be able to send signal to my thread.");
 }
 
 #[test]
